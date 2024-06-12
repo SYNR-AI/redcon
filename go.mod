@@ -1,4 +1,4 @@
-module github.com/SYNR-AI/redcon
+module github.com/SYNR-AI/redcon/v2
 
 go 1.15
 
