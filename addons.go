@@ -79,9 +79,12 @@ func serveAddons(s *Server) error {
 		}
 
 		// slot: addons start
-		addr := lnconn.RemoteAddr().String()
-		connectionAcceptLatency(addr, time.Now().Sub(start).Microseconds())
-		connectionAcceptCount(addr)
+		go func() {
+			latency := time.Now().Sub(start).Microseconds()
+			addr := lnconn.RemoteAddr().String()
+			connectionAcceptLatency(addr, latency)
+			connectionAcceptCount(addr)
+		}()
 		// slot: addons end
 
 		c := &conn{
@@ -118,8 +121,9 @@ func handleAddons(s *Server, c *conn) {
 			// slot: addons start
 			start := time.Now()
 			defer func() {
+				latency := time.Now().Sub(start).Microseconds()
 				addr := c.RemoteAddr()
-				connectionCloseLatency(addr, time.Now().Sub(start).Microseconds())
+				connectionCloseLatency(addr, latency)
 				connectionCloseCount(addr)
 			}()
 			// slot: addons end
