@@ -464,10 +464,6 @@ type conn struct {
 }
 
 func (c *conn) Close() error {
-	defer func() {
-		connectionCloseCount(c.addr)
-	}()
-
 	c.wr.Flush()
 	c.closed = true
 	return c.conn.Close()
