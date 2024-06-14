@@ -78,6 +78,12 @@ func serveAddons(s *Server) error {
 			continue
 		}
 
+		// slot: addons start
+		addr := lnconn.RemoteAddr().String()
+		connectionAcceptCount(addr)
+		connectionAcceptLatency(addr, time.Now().Sub(start).Microseconds())
+		// slot: addons end
+
 		c := &conn{
 			conn: lnconn,
 			addr: lnconn.RemoteAddr().String(),
@@ -88,36 +94,13 @@ func serveAddons(s *Server) error {
 		c.idleClose = s.idleClose
 		s.conns[c] = true
 		s.mu.Unlock()
-
-		// slot: addons start
-		acceptFn := func(c *conn) bool {
-			accepted := false
-			if s.accept != nil {
-				accepted = s.accept(c)
-			}
-
-			addr := c.RemoteAddr()
-			connectionAcceptCount(addr)
-			connectionAcceptLatency(addr, time.Now().Sub(start).Microseconds())
-
-			return accepted
-		}
-		if !acceptFn(c) {
+		if s.accept != nil && !s.accept(c) {
 			s.mu.Lock()
 			delete(s.conns, c)
 			s.mu.Unlock()
 			c.Close()
 			continue
 		}
-		// slot: addons end
-
-		//if s.accept != nil && !s.accept(c) {
-		//	s.mu.Lock()
-		//	delete(s.conns, c)
-		//	s.mu.Unlock()
-		//	c.Close()
-		//	continue
-		//}
 
 		go handleAddons(s, c)
 	}
