@@ -104,7 +104,7 @@ func serveAddons(s *Server) error {
 			continue
 		}
 
-		go handle(s, c)
+		go handleAddons(s, c)
 	}
 }
 
@@ -119,14 +119,11 @@ func handleAddons(s *Server, c *conn) {
 		func() {
 			// slot: addons start
 			start := time.Now()
-			latency := int64(0)
 			defer func() {
-				if serverOptions.ConnectionCount != nil {
-					serverOptions.ConnectionCount(c.addr, "closed")
-				}
-				if serverOptions.ConnectionLatency != nil {
-					serverOptions.ConnectionLatency(c.addr, "closed", latency)
-				}
+				addr := c.RemoteAddr()
+				latency := time.Now().Sub(start).Microseconds()
+				connectionCloseCount(addr)
+				connectionCloseLatency(addr, latency)
 			}()
 			// slot: addons end
 
@@ -139,10 +136,6 @@ func handleAddons(s *Server, c *conn) {
 					err = nil
 				}
 				s.closed(c, err)
-
-				// slot: addons start
-				latency = time.Now().Sub(start).Microseconds()
-				// slot: addons end
 			}
 		}()
 	}()
@@ -203,5 +196,11 @@ func connectionAcceptLatency(addr string, latency int64) {
 func connectionCloseCount(addr string) {
 	if serverOptions.ConnectionCount != nil {
 		serverOptions.ConnectionCount(addr, "closed")
+	}
+}
+
+func connectionCloseLatency(addr string, latency int64) {
+	if serverOptions.ConnectionLatency != nil {
+		serverOptions.ConnectionLatency(addr, "closed", latency)
 	}
 }
