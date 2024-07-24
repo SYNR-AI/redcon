@@ -56,11 +56,12 @@ func serveAddons(s *Server) error {
 		}()
 	}()
 	for {
-		// slot: addons start
-		start := time.Now()
-		// slot: addons end
-
-		lnconn, err := s.ln.Accept()
+		var startAt time.Time
+		lnconn, err := func() (net.Conn, error) {
+			c, err := s.ln.Accept()
+			startAt = time.Now()
+			return c, err
+		}()
 		if err != nil {
 			s.mu.Lock()
 			done := s.done
@@ -77,15 +78,6 @@ func serveAddons(s *Server) error {
 			}
 			continue
 		}
-
-		// slot: addons start
-		go func() {
-			latency := time.Now().Sub(start).Microseconds()
-			addr := lnconn.RemoteAddr().String()
-			connectionAcceptLatency(addr, latency)
-			connectionAcceptCount(addr)
-		}()
-		// slot: addons end
 
 		c := &conn{
 			conn: lnconn,
@@ -105,7 +97,16 @@ func serveAddons(s *Server) error {
 			continue
 		}
 
-		go handleAddons(s, c)
+		func() {
+			defer func() {
+				latency := time.Now().Sub(startAt).Microseconds()
+				addr := lnconn.RemoteAddr().String()
+				connectionAcceptLatency(addr, latency)
+				connectionAcceptCount(addr)
+			}()
+
+			go handleAddons(s, c)
+		}()
 	}
 }
 

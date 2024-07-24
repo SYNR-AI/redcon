@@ -25,15 +25,19 @@ func TestListenerAccept(t *testing.T) {
 		conns := map[net.Conn]bool{}
 
 		for {
-			start := time.Now()
-			c, err := listener.Accept()
+			var start time.Time
+			c, err := func() (net.Conn, error) {
+				conn, err := listener.Accept()
+				start = time.Now()
+				return conn, err
+			}()
 			if err != nil {
 				t.Errorf("Accept failed: %v", err)
 				return
 			}
 
 			go func() {
-				t.Logf("", time.Now().Sub(start))
+				t.Logf("%v", time.Now().Sub(start))
 			}()
 
 			mux.Lock()
